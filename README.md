@@ -1,4 +1,4 @@
-# lemm indices 
+# lemm's synset indices 
 
 Finding indexes for pairs of lemmas synsets
 
