@@ -47,7 +47,7 @@ def calculate_similarity(lemma1, lemma2, ic):
 
 # Основная функция  
 def main():  
-    lemmas_df = pd.read_csv('LEMLIST_copy.csv')  
+    lemmas_df = pd.read_csv('LEMLIST.csv')  
     lemmas_df = lemmas_df.dropna(subset=['lemma'])  
     lemmas = lemmas_df['lemma'].tolist()  
 
