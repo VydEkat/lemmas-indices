@@ -1,20 +1,20 @@
 import itertools  
 import pandas as pd  
 import nltk  
-nltk.download('wordnet_ic') 
-nltk.download('omw-1.4')
+# nltk.download('wordnet_ic') 
+# nltk.download('omw-1.4')
 from nltk.corpus import wordnet as wn
 from nltk.corpus import wordnet_ic
 from tqdm import tqdm
 import os 
 
 # ic_resnik = wordnet_ic.ic('ic-bnc-resnik-add1.dat')
-ic = wordnet_ic.ic('ic-bnc-add1.dat')
 # ic = wordnet_ic.ic('ic-brown.dat')
 # ic_lin = wordnet_ic.ic('ic-semcor.dat')
+ic = wordnet_ic.ic('ic-bnc-add1.dat')
 
 # Функция для расчета индексов схожести  
-def calculate_similarity(lemma1, lemma2, ic):
+def calculate_similarity(lemma1, lemma2, serial_no, word, ic):
       
     # Получаем синсеты для лемм  
     synsets1 = wn.synsets(lemma1)  
@@ -27,9 +27,11 @@ def calculate_similarity(lemma1, lemma2, ic):
             # Сравниваем только одинаковые части речи  
             if syn1.pos() == syn2.pos():   
                 if (lemma1, lemma2) not in first_result:  
-                    similarity_data = {  
-                        'lemma1': lemma1,  
-                        'lemma2': lemma2,  
+                    similarity_data = {
+                        'serial_no': serial_no,
+                        'word' : word,   
+                        'lemma-snword': lemma1,  
+                        'lemma-gsword': lemma2,
                         'path_similarity': wn.path_similarity(syn1, syn2) if syn1 and syn2 else None,  
                         'leacock_chodorow': wn.lch_similarity(syn1, syn2) if syn1 and syn2 else None,  
                         'wu_palmer': wn.wup_similarity(syn1, syn2) if syn1 and syn2 else None,  
@@ -47,36 +49,28 @@ def calculate_similarity(lemma1, lemma2, ic):
 
 # Основная функция  
 def main():  
-    lemmas_df = pd.read_csv('LEMLIST.csv')  
-    lemmas_df = lemmas_df.dropna(subset=['lemma'])  
-    lemmas = lemmas_df['lemma'].tolist()  
 
-    chunk_size = 800000  
-    file_index = 0  
-    results = []   
-    
-    # Создаем папку для сохранения результатов
-    output_dir = 'similarities_output'  
-    os.makedirs(output_dir, exist_ok=True)  
+    lemmas_df = pd.read_csv('snword-gsword-cleaned.csv')
 
-    total_combinations = len(list(itertools.combinations(lemmas, 2)))  
+    results = []
+
+    total_combinations = len(lemmas_df)  # Полное количество строк в DataFrame  
     with tqdm(total=total_combinations, desc="Обработка пар лемм", unit="пара") as pbar:  
-        for lemma1, lemma2 in itertools.combinations(lemmas, 2):  
-            result = calculate_similarity(lemma1, lemma2, ic)  
+        for index, row in lemmas_df.iterrows():  
+            lemma1 = row['lemma-snword']  
+            lemma2 = row['lemma-gsword']  
+            serial_no = row['serial_no']   
+            word = row['word']
+            
+            result = calculate_similarity(lemma1, lemma2, serial_no, word, ic)   
             results.extend(result)  
-
-            if len(results) >= chunk_size:  
-                df = pd.DataFrame(results)  
-                # Сохраняем файл в созданную папку  
-                df.to_csv(os.path.join(output_dir, f'similarities_chunk_{file_index}.csv'), index=False)  
-                file_index += 1  
-                results = []  
-
             pbar.update(1)  
 
-    if results:  
-        df = pd.DataFrame(results)  
-        df.to_csv(os.path.join(output_dir, f'similarities_chunk_{file_index}.csv'), index=False)   
+    # Сохранение всех результатов в один файл  
+    output_dir = 'similarities_output_snword-gsword'  
+    os.makedirs(output_dir, exist_ok=True)  
+    results_df = pd.DataFrame(results)  
+    results_df.to_csv(os.path.join(output_dir, 'similarities_output_snword-gsword.csv'), index=False)  
 
 if __name__ == "__main__":  
-    main()
+    main()  
